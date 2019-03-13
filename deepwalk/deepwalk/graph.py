@@ -4,6 +4,7 @@ from time import time
 from collections import defaultdict, Iterable
 from six import iterkeys
 from six.moves import range, zip, zip_longest
+from random import choice
 
 
 logger = logging.getLogger("deepwalk")
@@ -19,15 +20,6 @@ class Graph(defaultdict):
     def adjacency_iter(self):
         return self.iteritems()
 
-    def subgraph(self, nodes={}):
-        subgraph = Graph()
-
-        for n in nodes:
-            if n in self:
-                subgraph[n] = [x for x in self[n] if x in nodes]
-
-        return subgraph
-
     def make_undirected(self):
 
         t0 = time()
@@ -42,41 +34,6 @@ class Graph(defaultdict):
 
         self.make_consistent()
         return self
-
-    def make_consistent(self):
-        t0 = time()
-        for k in iterkeys(self):
-            self[k] = list(sorted(set(self[k])))
-
-        t1 = time()
-        logger.info('make_consistent: made consistent in {}s'.format(t1 - t0))
-
-        self.remove_self_loops()
-
-        return self
-
-    def remove_self_loops(self):
-
-        removed = 0
-        t0 = time()
-
-        for x in self:
-            if x in self[x]:
-                self[x].remove(x)
-                removed += 1
-
-        t1 = time()
-
-        logger.info('remove_self_loops: removed {} loops in {}s'.format(removed, (t1 - t0)))
-        return self
-
-    def check_self_loops(self):
-        for x in self:
-            for y in self[x]:
-                if x == y:
-                    return True
-
-        return False
 
     def has_edge(self, v1, v2):
         if v2 in self[v1] or v1 in self[v2]:
@@ -101,41 +58,29 @@ class Graph(defaultdict):
         "Returns the number of nodes in the graph"
         return self.order()
 
-    def random_walk(self, walk_length, alpha=0, rand=random.Random(), start=None):
-        """
-            Implement random walk.
-
-            path_length: walk length.
-            alpha: probability of restarts.
-            start: the start node of the random walk.
-        """
-        G = self
-        if start:
-            path = [start]
-        else:
-            path = [rand.choice(list(G.keys()))]
-
-        while len(path) < walk_length:
-            cur = path[-1]
-            if len(G[cur]) > 0:
-                if rand.random() >= alpha:
-                    path.append(rand.choice(G[cur]))
-                else:
-                    path.append(path[0])
-            else:
-                break
-        return [str(node) for node in path]
-
 # Generate random walk sequence
-def build_deepwalk_corpus(G, num_paths, walk_length, alpha=0,
-                          rand=random.Random(0)):
+def build_deepwalk_corpus(G, num_paths, path_length,rand=random.Random(0)):
     walk_seq = []
     nodes = list(G.nodes())
     for cnt in range(num_paths):
         rand.shuffle(nodes)
         # Generate random walk sequence for every node
         for node in nodes:
-            walk_seq.append(G.random_walk(walk_length, rand=rand, alpha=alpha, start=node))
+            # Implement random walk.
+            path = [node]
+            out_path = []
+
+            while len(path) < path_length:
+                cur = path[-1]
+                if len(G[cur]) > 0:
+                    path.append(choice(G[cur]))
+                else:
+                    break
+
+            for ret in path:
+                out_path.append(str(ret))
+
+            walk_seq.append(out_path)
 
     return walk_seq
 

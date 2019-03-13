@@ -27,9 +27,9 @@ def process(args):
   print("Data size (walks*length): {}".format(data_size))
 
   # Start walking
-  print("Walking...")
+  print("Random walking...")
   walk_seq = graph.build_deepwalk_corpus(G, num_paths=args.number_walks,
-                                      path_length=args.walk_length, alpha=0, rand=random.Random(args.seed))
+                                      path_length=args.walk_length)
   print("Training...")
   model = Word2Vec(walk_seq, size=args.representation_size, window=args.window_size, min_count=0, sg=1, hs=1,
                    workers=args.workers)
